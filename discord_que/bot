@@ -1,0 +1,51 @@
+import discord
+from discord.ext import commands
+from discord_components import DiscordComponents, Button, ButtonStyle, InteractionType
+
+bot = commands.Bot(command_prefix="!")
+DiscordComponents(bot)
+
+cadet_queue = []
+fto_status = {}
+
+@bot.event
+async def on_ready():
+    print(f'We have logged in as {bot.user}')
+
+@bot.command()
+async def join(ctx):
+    user = ctx.author
+    if user not in cadet_queue:
+        cadet_queue.append(user)
+        await ctx.send(f"{user.mention} has joined the queue.")
+    else:
+        await ctx.send(f"{user.mention}, you are already in the queue.")
+
+@bot.command()
+async def set_available(ctx):
+    fto = ctx.author
+    fto_status[fto] = True
+    await ctx.send(
+        f"{fto.mention} is now available.",
+        components=[
+            Button(label="Get Cadet", custom_id="get_cadet")
+        ]
+    )
+
+@bot.event
+async def on_button_click(res):
+    fto = res.user
+    if res.component.custom_id == "get_cadet":
+        if fto_status.get(fto) and cadet_queue:
+            cadet = cadet_queue.pop(0)
+            await res.respond(
+                type=InteractionType.ChannelMessageWithSource,
+                content=f"{fto.mention} is now training {cadet.mention}."
+            )
+        else:
+            await res.respond(
+                type=InteractionType.ChannelMessageWithSource,
+                content=f"No available cadets or {fto.mention} is not set as available."
+            )
+
+bot.run('your_bot_token_here')
